@@ -2,7 +2,8 @@ const { Telegraf, Markup, session } = require("telegraf");
 const { MongoClient } = require("mongodb");
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
-
+const fs = require('fs');
+const filePath = './file.txt';
 const TOKEN = "7020781359:AAEi5tH3lOmM44tFaz7ZCiDOGxrd2jCQKq0";
 const MONGODB_URI =
   "mongodb+srv://uploader2:uploader2@uploader2.uhnmx1u.mongodb.net/?retryWrites=true&w=majority&appName=uploader2";
@@ -99,13 +100,50 @@ bot.command("refcount", async (ctx) => {
   const user = await usersCollection.findOne({ userId: userId });
   if (user) {
     ctx.reply(
-      `hey ${username}!\n Your current referral count: ${user.referrals}`,
+      `hey ${username}!\nYour current referral count: ${user.referrals}`,
     );
   } else {
     ctx.reply("An error occurred. Please try again.");
   }
 });
+ 
+function readFileContent(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    console.error(`Error reading file: ${error.message}`);
+    return null;
+  }
+}
+
 bot.command("getfile", async (ctx) => {
+  const userId = ctx.message.from.id;
+  const isSubscribed = await isUserSubscribed(userId);
+
+  if (!isSubscribed) {
+    ctx.reply(
+      `To get the file, you must be subscribed to our channel: ${CHANNEL_NAME}\n\n` +
+      "Click the link below to subscribe:\n" +
+      `t.me/${CHANNEL_NAME}`,
+    );
+    return;
+  }
+
+  const user = await usersCollection.findOne({ userId: userId });
+
+  if (user && user.referrals >= 1) {
+    const fileContent = readFileContent(filePath);
+
+    if (fileContent !== null) {
+      ctx.reply(fileContent);
+    } else {
+      ctx.reply("Error reading file content.");
+    }
+  } else {
+    ctx.reply("You have not referred enough users to access the file.");
+  }
+});
+/*bot.command("getfile", async (ctx) => {
   const userId = ctx.message.from.id;
   const isSubscribed = await isUserSubscribed(userId);
   if (!isSubscribed) {
@@ -191,7 +229,7 @@ bot.command("ping", async (ctx) => {
     const pingTime = end - start;
     sentMessage.edit(`Pong! Latency is ${pingTime}ms`);
   });
-});
+});*/
 async function isUserSubscribed(userId) {
   try {
     const chatMember = await bot.telegram.getChatMember(CHANNEL_NAME, userId);

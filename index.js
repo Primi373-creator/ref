@@ -8,7 +8,6 @@ const MONGODB_URI =
   "mongodb+srv://uploader2:uploader2@uploader2.uhnmx1u.mongodb.net/?retryWrites=true&w=majority&appName=uploader2";
 const CHANNEL_NAME = "@hackersssd";
 const ADMIN_IDS = [5958051599];
-const SECRET_PATH = "bossman";
 const client = new MongoClient(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -24,13 +23,8 @@ const bot = new Telegraf(TOKEN);
 bot.use(session());
 const app = express();
 const port = 3000;
-app.get("/ping/:secretPath", (req, res) => {
-  const { secretPath } = req.params;
-  if (secretPath === SECRET_PATH) {
-    res.status(200).send("Bot is running!");
-  } else {
-    res.status(403).send("Invalid secret path.");
-  }
+app.get("/", (req, res) => {
+  res.status(200).send(" bossman's Bot is running!");
 });
 
 app.listen(port, () => {

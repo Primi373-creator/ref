@@ -1,4 +1,9 @@
-const { Telegraf, Markup, session } = require("telegraf");
+/*const TOKEN = "7020781359:AAEi5tH3lOmM44tFaz7ZCiDOGxrd2jCQKq0";
+const MONGODB_URI =
+  "mongodb+srv://pobasuyi69:9UW3Yra6HZFUCT0B@cluster0.lum7yrw.mongodb.net/?retryWrites=true&w=majority";
+const CHANNEL_NAME = "@hackersssd";
+const ADMIN_IDS = [6551258524];*/
+const { Telegraf, session } = require("telegraf");
 const { MongoClient } = require("mongodb");
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
@@ -7,7 +12,7 @@ const TOKEN = "7020781359:AAEi5tH3lOmM44tFaz7ZCiDOGxrd2jCQKq0";
 const MONGODB_URI =
   "mongodb+srv://pobasuyi69:9UW3Yra6HZFUCT0B@cluster0.lum7yrw.mongodb.net/?retryWrites=true&w=majority";
 const CHANNEL_NAME = "@hackersssd";
-const ADMIN_IDS = [5958051599];
+const ADMIN_IDS = [6551258524];
 const SECRET_PATH = "bossman";
 
 // Connect to MongoDB
@@ -60,11 +65,7 @@ bot.start(async (ctx) => {
 
   if (!isSubscribed) {
     // If not subscribed, inform the user and provide the referral link
-    ctx.reply(
-      `To use this bot, you must be subscribed to our channel: ${CHANNEL_NAME}\n\n` +
-        "Click the link below to subscribe:\n" +
-        `t.me/${CHANNEL_NAME}`,
-    );
+    ctx.reply("To use this bot, you must be subscribed to our channel.");
   } else {
     // Check if the user already exists in the database
     const user = await usersCollection.findOne({ userId: userId });
@@ -100,9 +101,7 @@ bot.command("reflink", async (ctx) => {
   const isSubscribed = await isUserSubscribed(userId);
   if (!isSubscribed) {
     ctx.reply(
-      `To get your referral link, you must be subscribed to our channel: ${CHANNEL_NAME}\n\n` +
-        "Click the link below to subscribe:\n" +
-        `t.me/${CHANNEL_NAME}`,
+      "To get your referral link, you must be subscribed to our channel.",
     );
     return;
   }
@@ -125,9 +124,7 @@ bot.command("refcount", async (ctx) => {
   const isSubscribed = await isUserSubscribed(userId);
   if (!isSubscribed) {
     ctx.reply(
-      `To check your referral count, you must be subscribed to our channel: ${CHANNEL_NAME}\n\n` +
-        "Click the link below to subscribe:\n" +
-        `t.me/${CHANNEL_NAME}`,
+      "To check your referral count, you must be subscribed to our channel.",
     );
     return;
   }
@@ -142,84 +139,44 @@ bot.command("refcount", async (ctx) => {
 });
 
 // Get file command handler
-bot.command("getfile", async (ctx) => {
+bot.command("getfile", (ctx) => {
+  const userId = ctx.message.from.id;
+
+  // Check if the user is subscribed to the channel
+  isUserSubscribed(userId).then((isSubscribed) => {
+    if (!isSubscribed) {
+      ctx.reply("To get the file, you must be subscribed to our channel.");
+    } else {
+      ctx.reply("Please enter the file ID:");
+    }
+  });
+});
+
+// Handle file ID input from the user
+bot.hears("Cancel", (ctx) => {
+  ctx.reply("Operation canceled.");
+});
+
+bot.on("text", async (ctx) => {
   const userId = ctx.message.from.id;
 
   // Check if the user is subscribed to the channel
   const isSubscribed = await isUserSubscribed(userId);
   if (!isSubscribed) {
-    ctx.reply(
-      `To get the file, you must be subscribed to our channel: ${CHANNEL_NAME}\n\n` +
-        "Click the link below to subscribe:\n" +
-        `t.me/${CHANNEL_NAME}`,
-    );
+    ctx.reply("To get the file, you must be subscribed to our channel.");
     return;
   }
 
-  ctx.reply(
-    "Please enter the ID of the file you want to get. Example: /getfile <fileID>",
-  );
-});
+  const fileId = ctx.message.text;
 
-// Handle file ID input from the user
-bot.on("text", async (ctx) => {
-  const userId = ctx.message.from.id;
-  const text = ctx.message.text;
+  // Retrieve the file from the database using the given ID
+  const file = await filesCollection.findOne({ fileId: fileId });
 
-  if (text.startsWith("/getfile")) {
-    // Extract the file ID from the command
-    const fileId = text.split(" ")[1];
-
-    // Retrieve the user's referral count
-    const user = await usersCollection.findOne({ userId: userId });
-
-    // Check if the user has referred enough users to access the file
-    if (user && user.referrals >= specifiedReferrals) {
-      // Retrieve the file from the database using the provided ID
-      const file = await filesCollection.findOne({ fileId: fileId });
-
-      if (file) {
-        // Provide the file content or perform the desired action
-        ctx.reply(`File content for ID ${fileId}:\n${file.content}`);
-      } else {
-        ctx.reply(`File with ID ${fileId} not found.`);
-      }
-    } else {
-      ctx.reply("You have not referred enough users to access the file.");
-    }
+  if (file) {
+    ctx.reply(`File content:\n${file.content || "No content available."}`);
+  } else {
+    ctx.reply("File not found. Please check the ID and try again.");
   }
-});
-// Set file command handler (for Admins)
-bot.command("setfile", async (ctx) => {
-  const userId = ctx.message.from.id;
-
-  // Check if the user is an admin
-  if (!isAdmin(userId)) {
-    ctx.reply("You are not authorized to use this command.");
-    return;
-  }
-
-  // Ask for the referral count required to access the file
-  ctx.reply(
-    "Enter the referral count required to access the file. Example: /setfile 10",
-  );
-
-  // Listen for the user's response with the referral count
-  bot.on("text", async (ctx) => {
-    const referralCount = parseInt(ctx.message.text);
-
-    // Save the file with the specified referral count to the database
-    const fileId = uuidv4();
-    filesCollection.insertOne({
-      fileId: fileId,
-      referralCount: referralCount,
-      content: "File content here",
-    });
-
-    ctx.reply(
-      `File with ID ${fileId} has been set. Users need to refer ${referralCount} users to access it.`,
-    );
-  });
 });
 
 // Contact command handler
@@ -231,8 +188,82 @@ bot.command("contact", (ctx) => {
   );
 });
 
-// Uptime command (for Admins)
-bot.command("uptime", (ctx) => {
+// Update contact command handler (for admins)
+bot.command("updatecontact", (ctx) => {
+  const userId = ctx.message.from.id;
+
+  // Check if the user is an admin
+  if (!isAdmin(userId)) {
+    ctx.reply("You are not authorized to use this command.");
+    return;
+  }
+
+  ctx.session.updateContact = true;
+  ctx.reply("Please send the updated contact information.");
+});
+
+// Handle received text message for updating contact (for admins)
+bot.on("text", async (ctx) => {
+  const userId = ctx.message.from.id;
+
+  // Check if the user is an admin and has a pending updateContact operation
+  if (isAdmin(userId) && ctx.session.updateContact) {
+    const updatedContactInfo = ctx.message.text;
+
+    // Save the updated contact information with a unique ID
+    const contactId = uuidv4();
+    contactsCollection.insertOne({
+      contactId: contactId,
+      content: updatedContactInfo,
+    });
+
+    ctx.reply(`Contact information updated successfully with ID: ${contactId}`);
+    ctx.session.updateContact = false;
+  }
+});
+
+// Add admin command handler (for superadmins)
+bot.command("addadmin", (ctx) => {
+  const userId = ctx.message.from.id;
+
+  // Check if the user is a superadmin
+  if (!isAdmin(userId, true)) {
+    ctx.reply("You are not authorized to use this command.");
+    return;
+  }
+
+  ctx.reply("Please enter the username or ID of the admin to be added:");
+});
+
+// Handle received text message for adding admin (for superadmins)
+bot.on("text", async (ctx) => {
+  const userId = ctx.message.from.id;
+
+  // Check if the user is a superadmin and has a pending addAdmin operation
+  if (isAdmin(userId, true) && ctx.session.addAdmin) {
+    const adminIdOrUsername = ctx.message.text;
+
+    // Check if the provided ID or username is valid
+    const adminUser = await bot.telegram.getChatMember(
+      CHANNEL_NAME,
+      adminIdOrUsername,
+    );
+    if (adminUser) {
+      // Add the admin to the list
+      addAdmin(adminUser.user.id);
+      ctx.reply(
+        `Admin ${adminUser.user.username || adminUser.user.id} added successfully.`,
+      );
+    } else {
+      ctx.reply("Invalid admin ID or username. Please try again.");
+    }
+
+    ctx.session.addAdmin = false;
+  }
+});
+
+// Uptime command handler (for admins)
+bot.command("uptime", async (ctx) => {
   const userId = ctx.message.from.id;
 
   // Check if the user is an admin
@@ -243,11 +274,13 @@ bot.command("uptime", (ctx) => {
 
   // Get the bot's uptime
   const uptime = process.uptime();
-  ctx.reply(`Bot uptime: ${formatUptime(uptime)}`);
+  const formattedUptime = formatUptime(uptime);
+
+  ctx.reply(`Bot uptime: ${formattedUptime}`);
 });
 
-// Alive command (for Admins)
-bot.command("alive", (ctx) => {
+// Alive command handler (for admins)
+bot.command("alive", async (ctx) => {
   const userId = ctx.message.from.id;
 
   // Check if the user is an admin
@@ -256,10 +289,10 @@ bot.command("alive", (ctx) => {
     return;
   }
 
-  ctx.reply("Yes, I am alive!");
+  ctx.reply("I am alive and kicking!");
 });
 
-// Ping command (for Admins)
+// Ping command handler (for admins)
 bot.command("ping", async (ctx) => {
   const userId = ctx.message.from.id;
 
@@ -269,13 +302,23 @@ bot.command("ping", async (ctx) => {
     return;
   }
 
-  const start = new Date();
+  const startTime = Date.now();
   ctx.reply("Pinging...").then((sentMessage) => {
-    const end = new Date();
-    const pingTime = end - start;
-    sentMessage.edit(`Pong! Latency is ${pingTime}ms`);
+    const endTime = Date.now();
+    const pingTime = endTime - startTime;
+    ctx.telegram.editMessageText(
+      sentMessage.chat.id,
+      sentMessage.message_id,
+      undefined,
+      `Pong! Response time: ${pingTime} ms`,
+    );
   });
 });
+
+// Helper function to check if a user is an admin
+function isAdmin(userId, isSuperadmin = false) {
+  return isSuperadmin ? ADMIN_IDS.includes(userId) : false;
+}
 
 // Helper function to check if a user is subscribed to the channel
 async function isUserSubscribed(userId) {
@@ -290,17 +333,14 @@ async function isUserSubscribed(userId) {
   }
 }
 
-// Helper function to check if a user is an admin
-function isAdmin(userId, superadmin = false) {
-  return superadmin ? ADMIN_IDS.includes(userId) : ADMIN_IDS.includes(userId);
-}
-
-// Helper function to format uptime
+// Helper function to format uptime in a human-readable format
 function formatUptime(uptime) {
-  const hours = Math.floor(uptime / 3600);
+  const days = Math.floor(uptime / 86400);
+  const hours = Math.floor((uptime % 86400) / 3600);
   const minutes = Math.floor((uptime % 3600) / 60);
   const seconds = Math.floor(uptime % 60);
-  return `${hours}h ${minutes}m ${seconds}s`;
+
+  return `${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`;
 }
 
 // Start the bot

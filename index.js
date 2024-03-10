@@ -7,7 +7,7 @@ const filePath = './file.txt';
 const TOKEN = "7068252272:AAEmmyT78tq3WcbalMwR2fD2Dlhjr1h7XNM";
 const MONGODB_URI =
   "mongodb+srv://uploader2:uploader2@uploader2.uhnmx1u.mongodb.net/?retryWrites=true&w=majority&appName=uploader2";
-const CHANNEL_NAME = "@obasuyi4";
+const CHANNEL_NAME = "@obasuyi5";
 const ADMIN_IDS = [5958051599];
 const client = new MongoClient(MONGODB_URI, {
   useNewUrlParser: true,

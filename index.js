@@ -5,10 +5,13 @@ const { v4: uuidv4 } = require("uuid");
 const fs = require('fs');
 
 const filePath = './file.txt';
-const TOKEN = "YOUR_TELEGRAM_BOT_TOKEN";
-const MONGODB_URI = "YOUR_MONGODB_CONNECTION_STRING";
+const TOKEN = "7068252272:AAEmmyT78tq3WcbalMwR2fD2Dlhjr1h7XNM";
+const MONGODB_URI =
+  "mongodb+srv://uploader2:uploader2@uploader2.uhnmx1u.mongodb.net/?retryWrites=true&w=majority&appName=uploader2";
 const CHANNEL_NAME = "@hackersssd";
-const ADMIN_IDS = [5958051599];
+const ADMIN_IDS = [6341138384];
+
+const msgId = 6341138384; 
 
 const client = new MongoClient(MONGODB_URI, {
   useNewUrlParser: true,
@@ -41,7 +44,7 @@ bot.start(async (ctx) => {
   const userId = ctx.message.from.id;
   const isSubscribed = await isUserSubscribed(userId);
   const username = ctx.message.from.username;
-  const referralStart = ctx.message.text.split(' ')[1]; // Extract the referral parameter
+  const referralStart = ctx.message.text.split(' ')[1];
 
   if (!isSubscribed) {
     ctx.reply(
@@ -67,12 +70,8 @@ bot.start(async (ctx) => {
     } else {
       if (referralStart && referralStart !== user.userUUID) {
         await updateReferralCount(referralStart);
-        const referringUser = await usersCollection.findOne({ userUUID: referralStart });
-        const referringUsername = referringUser ? referringUser.username : 'Unknown';
-        ctx.telegram.sendMessage(
-          referringUser.userId,
-          `🎉 Congratulations, ${referringUsername}! You successfully referred a new user. Your current referral count: ${referringUser.referrals + 1}`,
-        );
+        const adminMessage = `🎉 Success! User ${username} (${userId}) referred a new user. Referral count: ${user.referrals + 1}`;
+        await ctx.telegram.sendMessage(msgId, adminMessage);
       }
 
       const referralLink = `https://t.me/${ctx.botInfo.username}?start=${user.userUUID}`;
